@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>IA Data processing</title>
+  <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.5/dist/jstat.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --pink-light: #ffe7f2;
+      --pink-lighter: #fff0f7;
+      --pink: #e76fbf;
+      --pink-dark: #c1429b;
+      --radius: 12px;
+      --shadow: 0 10px 30px -5px rgba(199,72,155,0.15);
+      --border: 1px solid rgba(199,72,155,0.4);
+    }
+    * { box-sizing:border-box; }
+    body {
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #ffe7f2 0%, #fff0f7 70%);
+      color: #3f1f4f;
+      min-width: 320px;
+    }
+    h1 {
+      margin-top: 0;
+      color: #a01f7e;
+      font-size: 2.2rem;
+    }
+    .flex { display: flex; gap: 20px; flex-wrap: wrap; }
+    .box {
+      background: white;
+      border: var(--border);
+      padding: 18px;
+      border-radius: var(--radius);
+      flex: 1;
+      min-width: 300px;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    textarea { width: 100%; height: 60px; font-family: monospace; border: 1px solid #d8bfd8; border-radius:6px; padding:6px; }
+    input[type=text] {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #d8bfd8;
+      border-radius:6px;
+    }
+    label { display:block; margin-bottom:4px; font-weight:600; }
+    button {
+      padding: 10px 18px;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #ff9ed8 0%, #e76fbf 70%);
+      color: white;
+      font-weight:600;
+      box-shadow: 0 8px 20px -5px rgba(231,111,191,0.4);
+      transition: transform .15s, filter .15s;
+    }
+    button:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    button:active { transform: translateY(1px); }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      background: #faf5fc;
+      border-radius:6px;
+      overflow: hidden;
+    }
+    th {
+      background: #f7e1f3;
+      color: #5f2c62;
+      font-weight:700;
+      padding: 8px;
+      border: 1px solid rgba(199,72,155,0.3);
+    }
+    td {
+      padding: 6px 10px;
+      border: 1px solid rgba(199,72,155,0.2);
+      font-size: .95rem;
+    }
+    .small { font-size: 0.75em; color: #6a527a; margin-top:6px; }
+    .significant { background: #ffe6f0; }
+    .warning { color: #b33; margin-top:8px; }
+    .loading { color: #5a2375; margin-top:4px; }
+    .button-row { margin-top: 10px; }
+    .pill { background: #fce8f6; padding:4px 10px; border-radius:999px; font-size:.65rem; display:inline-block; margin-bottom:8px; }
+    .chart-container { position: relative; }
+    @media (max-width: 1000px) {
+      .flex { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <center><h1>IA Data Processing and Graph</h1>
+  <p>Enter five groups (each with 5 numbers separated by commas), the corresponding X-axis group values, and labels. Then press <strong>Run Analysis</strong>. After the graph is drawn you can download it.</p></center>
+
+  <div class="flex">
+    <div class="box">
+      <div class="pill">Data Input</div>
+      <div>
+        <label><strong>Group 1:</strong></label>
+        <textarea id="group1">2,3,2,3,3</textarea>
+      </div>
+      <div>
+        <label><strong>Group 2:</strong></label>
+        <textarea id="group2">5,4,3,3,3</textarea>
+      </div>
+      <div>
+        <label><strong>Group 3:</strong></label>
+        <textarea id="group3">4,4,4,3,4</textarea>
+      </div>
+      <div>
+        <label><strong>Group 4:</strong></label>
+        <textarea id="group4">4,5,4,5,4</textarea>
+      </div>
+      <div>
+        <label><strong>Group 5:</strong></label>
+        <textarea id="group5">5,6,6,5,5</textarea>
+      </div>
+      <div style="margin-top:10px;">
+        <label><strong>X-axis groups (These are the independent variable variations you chose, like 0 grams fertilizer, 5 grams, etc.):</strong></label>
+        <input type="text" id="groups" value="0,5,10,15,20" />
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="pill">Labels & Title</div>
+      <div>
+        <label>Graph Title:</label>
+        <input type="text" id="title" value="The effect of fertilizer on plant growth" />
+      </div>
+      <div>
+        <label>X Axis Label:</label>
+        <input type="text" id="xlabel" value="Fertilizer (g)" />
+      </div>
+      <div>
+        <label>Y Axis Label:</label>
+        <input type="text" id="ylabel" value="Plant height (cm)" />
+      </div>
+      <div class="button-row">
+      <br>
+        <button onclick="runAnalysis()">Run Analysis</button>
+      </div>
+      <div id="error" class="warning"></div>
+      <div id="mcstatus" class="loading"></div>
+    </div>
+  </div>
+
+  <div class="box" style="margin-top:20px;">
+    <div class="pill">Results</div>
+    <div id="posthoc"></div>
+    <div id="statsTable"></div>
+    
+  </div>
+
+  <div class="box" style="margin-top:20px;">
+    <div class="pill">Plot</div>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div class="chart-container" style="flex:1; min-width:300px; max-width:700px; max-height:700px; aspect-ratio:1/1;">
+        <canvas id="chart" height="300" style="max-width:100%;"></canvas>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button onclick="downloadChart()">Download Graph as PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function parseNumericList(str) {
+      return str.split(',')
+                .map(s => parseFloat(s.trim()))
+                .filter(x => !isNaN(x));
+    }
+
+    function sampleSD(arr) {
+      const n = arr.length;
+      if (n < 2) return 0;
+      const mean = jStat.mean(arr);
+      const variance = arr.reduce((sum, v) => sum + Math.pow(v - mean,2), 0) / (n - 1);
+      return Math.sqrt(variance);
+    }
+
+    function formatP(p) {
+      if (p < 0.0001) return "<.0001";
+      let s = p.toFixed(4);
+      if (s.startsWith("0.")) s = s.slice(1);
+      return s;
+    }
+
+    const tukeyCache = {};
+
+    async function simulateStudentizedRange(k, n, reps = 4000) {
+      const key = `${k}|${n}`;
+      if (tukeyCache[key]) return tukeyCache[key];
+      document.getElementById('mcstatus').textContent = `Simulating Tukey HSD distribution (this may take a moment)...`;
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const samples = [];
+          for (let r = 0; r < reps; r++) {
+            const groupMeans = [];
+            let ssWithinSum = 0;
+            for (let i = 0; i < k; i++) {
+              const xs = [];
+              for (let j = 0; j < n; j++) {
+                xs.push(jStat.normal.sample(0,1));
+              }
+              const mean_i = jStat.mean(xs);
+              groupMeans.push(mean_i);
+              xs.forEach(x => {
+                ssWithinSum += Math.pow(x - mean_i, 2);
+              });
+            }
+            const dfWithin = k * (n - 1);
+            const pooledVar = ssWithinSum / dfWithin;
+            const sdFactor = Math.sqrt(pooledVar / n);
+            const maxMean = Math.max(...groupMeans);
+            const minMean = Math.min(...groupMeans);
+            const qSim = (maxMean - minMean) / sdFactor;
+            samples.push(qSim);
+          }
+          samples.sort((a,b)=>a-b);
+          tukeyCache[key] = samples;
+          document.getElementById('mcstatus').textContent = '';
+          resolve(samples);
+        }, 10);
+      });
+    }
+
+    function tukeyPValue(qObserved, studentizedRangeSamples) {
+      let count = 0;
+      const M = studentizedRangeSamples.length;
+      for (let i = 0; i < M; i++) {
+        if (studentizedRangeSamples[i] >= Math.abs(qObserved)) count++;
+      }
+      return Math.max(1 / M, count / M);
+    }
+
+    let chartInstance = null;
+
+    function runAnalysis() {
+      document.getElementById('error').textContent = '';
+      const g1 = parseNumericList(document.getElementById('group1').value);
+      const g2 = parseNumericList(document.getElementById('group2').value);
+      const g3 = parseNumericList(document.getElementById('group3').value);
+      const g4 = parseNumericList(document.getElementById('group4').value);
+      const g5 = parseNumericList(document.getElementById('group5').value);
+      const groups = parseNumericList(document.getElementById('groups').value);
+      const title = document.getElementById('title').value;
+      const xlabel = document.getElementById('xlabel').value;
+      const ylabel = document.getElementById('ylabel').value;
+
+      const allGroups = [g1,g2,g3,g4,g5];
+      const k = allGroups.length;
+      const n = g1.length;
+
+      if (![g1,g2,g3,g4,g5].every(g => g.length === n)) {
+        document.getElementById('error').textContent = 'All groups must have the same number of numeric entries.';
+        return;
+      }
+      if (groups.length !== k) {
+        document.getElementById('error').textContent = 'There must be exactly ' + k + ' x-axis group values.';
+        return;
+      }
+      if (n < 2) { document.getElementById('error').textContent = 'Each group needs at least 2 values.'; return; }
+
+      const means = allGroups.map(g => jStat.mean(g));
+      const sds = allGroups.map(g => sampleSD(g));
+      const combined = [].concat(...allGroups);
+      const N = combined.length;
+      const grandMean = jStat.mean(combined); // internal
+
+      let ssBetween = 0;
+      for (let i = 0; i < k; i++) {
+        ssBetween += n * Math.pow(means[i] - grandMean, 2);
+      }
+      let ssWithin = 0;
+      for (let i = 0; i < k; i++) {
+        allGroups[i].forEach(val => {
+          ssWithin += Math.pow(val - means[i], 2);
+        });
+      }
+      const dfBetween = k - 1;
+      const dfWithin = N - k;
+      const msBetween = ssBetween / dfBetween;
+      const msWithin = ssWithin / dfWithin;
+      const F = msBetween / msWithin;
+      const pValue = 1 - jStat.centralF.cdf(F, dfBetween, dfWithin);
+
+      simulateStudentizedRange(k, n).then((srSamples) => {
+        const comparisons = [];
+        const se = Math.sqrt(msWithin / n);
+        for (let i = 0; i < k; i++) {
+          for (let j = i+1; j < k; j++) {
+            const diff = means[i] - means[j];
+            const q_ij = Math.abs(diff) / se;
+            const pTukey = tukeyPValue(q_ij, srSamples);
+            comparisons.push({
+              pair: `group${i+1} vs group${j+1}`,
+              pTukey: pTukey,
+              significant: pTukey < 0.05
+            });
+          }
+        }
+
+        // Regression on means
+        const x = groups;
+        const y = means;
+        const xMean = jStat.mean(x);
+        const yMean = jStat.mean(y);
+        let num=0, den=0;
+        for (let i=0;i<x.length;i++){
+          num += (x[i]-xMean)*(y[i]-yMean);
+          den += Math.pow(x[i]-xMean,2);
+        }
+        const slope = num / den;
+        const intercept = yMean - slope * xMean;
+
+        // Tukey HSD simplified table
+        let phHtml = `<h3>Oneway Anova with Tukey HSD</h3>
+          <table>
+            <thead><tr>
+              <th>Comparison</th><th>p adj</th><th>Significantly different? (< .05)</th>
+            </tr></thead><tbody>`;
+        comparisons.forEach(c => {
+          phHtml += `<tr class="${c.significant ? 'significant' : ''}">
+            <td>${c.pair}</td>
+            <td>${formatP(c.pTukey)}</td>
+            <td>${c.significant ? 'Yes' : 'No'}</td>
+          </tr>`;
+        });
+        phHtml += `</tbody></table>`;
+        document.getElementById('posthoc').innerHTML = phHtml;
+
+        // Stats table (mean, SD)
+        let statHtml = `<h3>Group Summary Statistics</h3>
+          <table>
+            <thead><tr>
+              <th>Group</th><th>Mean</th><th>SD</th>
+            </tr></thead><tbody>`;
+        for (let i=0;i<k;i++) {
+          statHtml += `<tr>
+            <td>group${i+1}</td>
+            <td>${means[i].toFixed(2)}</td>
+            <td>${sds[i].toFixed(4)}</td>
+          </tr>`;
+        }
+        statHtml += `</tbody></table>`;
+        document.getElementById('statsTable').innerHTML = statHtml;
+
+        renderChart(groups, means, sds, slope, intercept, title, xlabel, ylabel);
+      });
+    }
+
+    function renderChart(x, y, sds, slope, intercept, title, xlabel, ylabel) {
+      const ctx = document.getElementById('chart');
+      if (chartInstance) chartInstance.destroy();
+
+      const dataPoints = x.map((xi, i) => ({
+        x: xi,
+        y: y[i],
+        sd: sds[i]
+      }));
+
+      const lows = y.map((yi,i) => yi - sds[i]);
+      const highs = y.map((yi,i) => yi + sds[i]);
+      let yMin = Math.min(...lows);
+      let yMax = Math.max(...highs);
+      let padding = (yMax - yMin) * 0.1;
+      if (padding === 0) padding = Math.abs(yMin) * 0.1 || 1;
+      yMin -= padding;
+      yMax += padding;
+
+      const xMin = Math.min(...x);
+      const xMax = Math.max(...x);
+      const trendY = [slope * xMin + intercept, slope * xMax + intercept];
+
+      const whiteBackgroundPlugin = {
+        id: 'whiteBackground',
+        beforeDraw(chart) {
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.globalCompositeOperation = 'destination-over';
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, chart.width, chart.height);
+          ctx.restore();
+        }
+      };
+
+      chartInstance = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Mean ± SD',
+              data: dataPoints,
+              showLine: true,
+              pointStyle: 'rect',
+              borderWidth: 2,
+              tension: 0,
+              borderColor: 'black',
+              backgroundColor: 'black',
+            },
+            {
+              label: 'Trend line',
+              data: [{x: xMin, y: trendY[0]}, {x: xMax, y: trendY[1]}],
+              type: 'line',
+              borderDash: [5,5],
+              borderColor: 'blue',
+              pointRadius: 0,
+              fill: false,
+              tension: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: title,
+              font: { size: 26, weight: '600' },
+              color: '#000'
+            },
+            legend: { position: 'top', labels: { padding: 8, color: '#000' } },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  if (context.dataset.label === 'Mean ± SD') {
+                    const idx = context.dataIndex;
+                    const pt = dataPoints[idx];
+                    return `Mean: ${pt.y.toFixed(3)}, SD: ${pt.sd.toFixed(3)}`;
+                  }
+                  return context.dataset.label + ': ' + context.formattedValue;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              title: {
+                display: true,
+                text: xlabel,
+                font: { size: 18, weight: '600' },
+                color: '#000'
+              },
+              ticks: { font: { size: 14 }, color: '#000' }
+            },
+            y: {
+              title: {
+                display: true,
+                text: ylabel,
+                font: { size: 18, weight: '600' },
+                color: '#000'
+              },
+              ticks: { font: { size: 14 }, color: '#000' },
+              min: yMin,
+              max: yMax
+            }
+          }
+        },
+        plugins: [whiteBackgroundPlugin, errorBarPlugin]
+      });
+    }
+
+    const errorBarPlugin = {
+      id: 'errorBars',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data) return;
+        meta.data.forEach((pt, i) => {
+          const sd = chart.data.datasets[0].data[i].sd;
+          const yval = chart.data.datasets[0].data[i].y;
+          const yTop = chart.scales.y.getPixelForValue(yval + sd);
+          const yBottom = chart.scales.y.getPixelForValue(yval - sd);
+          const x = pt.x;
+
+          ctx.save();
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x, yTop);
+          ctx.lineTo(x, yBottom);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x - 5, yTop);
+          ctx.lineTo(x + 5, yTop);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x - 5, yBottom);
+          ctx.lineTo(x + 5, yBottom);
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+    };
+
+    function downloadChart() {
+      if (!chartInstance) return;
+      const rawTitle = document.getElementById('title').value || 'chart';
+      const safeTitle = rawTitle.trim().replace(/\s+/g,'_').replace(/[^\w\-]/g,'');
+      const date = new Date().toISOString().slice(0,10);
+      const filename = `${safeTitle || 'chart'}_${date}.png`;
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = chartInstance.toBase64Image('image/png', 1);
+      link.click();
+    }
+  </script>
+</body>
+</html>
